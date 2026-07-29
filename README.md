@@ -4,6 +4,8 @@
 
 > 数据仅来自站点公开接口与页面，请合理控制请求频率，遵守网站服务条款；本项目仅供学习与数据分析使用。
 
+![查询页截图](assets/query-ui.png)
+
 ## 功能
 
 - 解析年度赛事日历，按地点筛选中国站（`China` / `🇨🇳`）
@@ -29,7 +31,7 @@
 ## 快速开始
 
 ```bash
-git clone <your-repo-url> atour
+git clone https://github.com/Shibuya-ku/atour.git
 cd atour
 
 # 可选：跑测试
