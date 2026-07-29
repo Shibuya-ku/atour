@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>atour · AJP 中国站</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <header class="top">
+    <div class="brand">
+      <p class="brand-mark">atour</p>
+      <p class="brand-sub">AJP 中国站 · Men's / Women's · White+</p>
+    </div>
+    <p id="stats" class="stats" aria-live="polite"></p>
+  </header>
+
+  <section class="filters" aria-label="查询条件">
+    <label class="field grow">
+      <span>关键词</span>
+      <input id="q" type="search" placeholder="选手 / 俱乐部" autocomplete="off" />
+    </label>
+    <label class="field">
+      <span>赛事</span>
+      <select id="eventId"><option value="0">全部赛事</option></select>
+    </label>
+    <label class="field">
+      <span>性别</span>
+      <select id="gender">
+        <option value="">全部</option>
+        <option value="Men's">Men's</option>
+        <option value="Women's">Women's</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>腰带</span>
+      <select id="belt">
+        <option value="">全部</option>
+        <option>White</option>
+        <option>Blue</option>
+        <option>Purple</option>
+        <option>Brown</option>
+        <option>Black</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>赛制</span>
+      <select id="style">
+        <option value="">全部</option>
+        <option value="GI">GI</option>
+        <option value="NO-GI">NO-GI</option>
+      </select>
+    </label>
+    <label class="check">
+      <input id="hideBye" type="checkbox" checked />
+      <span>隐藏 BYE</span>
+    </label>
+    <div class="view-toggle" role="group" aria-label="视图">
+      <button type="button" id="viewMatches" class="active">对阵</button>
+      <button type="button" id="viewPlacements">名次</button>
+    </div>
+  </section>
+
+  <p id="loadError" class="error" hidden></p>
+  <p id="emptyState" class="empty" hidden>无匹配结果</p>
+
+  <div class="table-wrap">
+    <table class="data">
+      <thead id="resultHead"></thead>
+      <tbody id="resultBody"></tbody>
+    </table>
+  </div>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

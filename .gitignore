@@ -1,0 +1,48 @@
+# Binaries / build
+*.exe
+*.dll
+*.so
+*.dylib
+/bin/
+/dist/
+
+# Go
+vendor/
+
+# 爬取 JSON 数据
+/output/
+*.json
+!testdata/**/*.json
+
+# 日志
+*.log
+*.out.log
+*.err.log
+logs/
+
+# 文档（实现计划等）
+/docs/
+
+# AI / Agent 工具目录
+.cursor/
+.codex/
+.claude/
+.aider/
+.windsurf/
+.continue/
+.gemini/
+.augment/
+.agent/
+.agents/
+.copilot/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Temp
+*.tmp
+*.temp

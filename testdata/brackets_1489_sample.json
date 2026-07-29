@@ -1,0 +1,31 @@
+{
+  "brackets": [
+    {
+      "id": 209338,
+      "name": "Men's GI / Blue / Amateur / 69KG",
+      "mats": "Mat 3",
+      "bracket_bundle_id": 124808,
+      "estimated_start": "2026-05-17T10:06:10+08:00",
+      "registrations_count": 6,
+      "bracket_id": 126903
+    },
+    {
+      "id": 210218,
+      "name": "Men's GI / White / Amateur / 69KG",
+      "mats": "Mat 1",
+      "bracket_bundle_id": 124815,
+      "estimated_start": "2026-05-17T12:04:44+08:00",
+      "registrations_count": 9,
+      "bracket_id": 126910
+    },
+    {
+      "id": 210225,
+      "name": "Youth Men's GI / Blue / 55KG",
+      "mats": "Mat 2",
+      "bracket_bundle_id": 124792,
+      "estimated_start": "2026-05-17T09:35:08+08:00",
+      "registrations_count": 3,
+      "bracket_id": 126887
+    }
+  ]
+}
