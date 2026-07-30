@@ -8,6 +8,7 @@ const state = {
   total: 0,
   selectedUserIds: new Set(),
   athleteSearchItems: [],
+  lastAthleteQuery: "",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -275,8 +276,15 @@ function renderAthleteIdentities(items) {
 async function searchAthletes() {
   const q = $("q").value.trim();
   $("athleteSearchHint").hidden = true;
+  // 同关键词不重复搜索（避免点选身份时 input 失焦触发 change 清空勾选）
+  if (q.length >= 2 && q === state.lastAthleteQuery) {
+    return;
+  }
+  state.selectedUserIds.clear();
+  updateAthleteLoadBtn();
   clearAthleteProfile();
   if (q.length < 2) {
+    state.lastAthleteQuery = "";
     state.athleteSearchItems = [];
     $("athleteIdentities").innerHTML = "";
     $("emptyState").hidden = true;
@@ -290,6 +298,7 @@ async function searchAthletes() {
     const res = await fetch(`/api/athletes/search?q=${encodeURIComponent(q)}`);
     if (!res.ok) throw new Error(`search ${res.status}`);
     const data = await res.json();
+    state.lastAthleteQuery = q;
     state.athleteSearchItems = data.items || [];
     renderAthleteIdentities(state.athleteSearchItems);
     $("stats").textContent = `找到 ${state.athleteSearchItems.length} 个身份`;
@@ -432,11 +441,13 @@ function setViewMode(view) {
 
   if (isAthletes) {
     clearAthleteProfile();
+    state.lastAthleteQuery = "";
     const q = $("q").value.trim();
     if (q.length >= 2) searchAthletes();
     else $("stats").textContent = "";
   } else {
     state.selectedUserIds.clear();
+    state.lastAthleteQuery = "";
     updateAthleteLoadBtn();
     $("athleteIdentities").innerHTML = "";
     resetPage();
@@ -489,7 +500,9 @@ function onFilterChange() {
 }
 
 function bind() {
-  for (const id of ["q", "eventId", "gender", "belt", "style", "hideBye"]) {
+  // 关键词只用 input：change 会在失焦时触发，选手页点选身份会被误当成重新搜索
+  $("q").addEventListener("input", onFilterChange);
+  for (const id of FILTER_IDS) {
     $(id).addEventListener("input", onFilterChange);
     $(id).addEventListener("change", onFilterChange);
   }
