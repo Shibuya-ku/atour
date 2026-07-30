@@ -28,6 +28,9 @@ logs/
 
 # 文档（实现计划等）
 /docs/
+!docs/superpowers/
+!docs/superpowers/specs/
+!docs/superpowers/specs/**
 
 # AI / Agent 工具目录
 .cursor/
