@@ -70,9 +70,13 @@ function visiblePages(current, pages, max = 5) {
 function updatePager() {
   const pages = pageCount();
   const pager = $("pager");
-  pager.hidden = state.view === "athletes" || state.total <= 0;
-  if (state.view === "athletes" || state.total <= 0) {
-    if (state.view !== "athletes") $("stats").textContent = "共 0 条";
+  if (state.view === "athletes") {
+    pager.hidden = true;
+    return;
+  }
+  pager.hidden = state.total <= 0;
+  if (state.total <= 0) {
+    $("stats").textContent = "共 0 条";
     $("pageNums").innerHTML = "";
     return;
   }
@@ -418,7 +422,10 @@ function setViewMode(view) {
   setMatchFiltersVisible(!isAthletes);
   $("q").placeholder = isAthletes ? "选手姓名" : "选手 / 俱乐部";
   $("resultTableWrap").hidden = isAthletes;
-  $("pager").hidden = isAthletes || state.total <= 0;
+  $("pager").hidden = isAthletes;
+  if (!isAthletes) {
+    $("pager").hidden = state.total <= 0;
+  }
   $("athletePanel").hidden = !isAthletes;
   $("emptyState").hidden = true;
   $("athleteSearchHint").hidden = true;

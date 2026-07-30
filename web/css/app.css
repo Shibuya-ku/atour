@@ -13,6 +13,8 @@
 }
 
 * { box-sizing: border-box; }
+/* 作者样式里的 display:flex/grid 会盖过 UA 的 [hidden]，需强制隐藏 */
+[hidden] { display: none !important; }
 html, body { margin: 0; min-height: 100%; }
 body {
   font-family: var(--font-body);
