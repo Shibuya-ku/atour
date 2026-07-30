@@ -6,23 +6,24 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
-)
 
-func newMux(webDir, dataDir string) http.Handler {
-	mux := http.NewServeMux()
-	mux.Handle("/data/", http.StripPrefix("/data/", http.FileServer(http.Dir(dataDir))))
-	mux.Handle("/", http.FileServer(http.Dir(webDir)))
-	return mux
-}
+	"atour/internal/store"
+)
 
 func main() {
 	addr := flag.String("addr", ":8787", "listen address")
 	web := flag.String("web", "web", "web root directory")
-	data := flag.String("data", "output", "JSON data directory")
+	driver := flag.String("db-driver", "sqlite", "sqlite|mysql")
+	dsn := flag.String("dsn", "data/atour.db", "sqlite path or mysql DSN")
 	flag.Parse()
 
+	s, err := store.Open(*driver, *dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer s.Close()
+
 	webDir, _ := filepath.Abs(*web)
-	dataDir, _ := filepath.Abs(*data)
-	fmt.Printf("atour web  http://localhost%s\n  web=%s\n  data=%s\n", *addr, webDir, dataDir)
-	log.Fatal(http.ListenAndServe(*addr, newMux(webDir, dataDir)))
+	fmt.Printf("atour web  http://localhost%s\n  web=%s\n  db-driver=%s\n  dsn=%s\n", *addr, webDir, *driver, *dsn)
+	log.Fatal(http.ListenAndServe(*addr, newMux(webDir, s)))
 }

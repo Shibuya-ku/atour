@@ -1,33 +1,51 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"atour/internal/ajp"
+	"atour/internal/store"
 )
 
-func TestMuxServesWebAndData(t *testing.T) {
-	root := t.TempDir()
-	web := filepath.Join(root, "web")
-	data := filepath.Join(root, "output")
-	os.MkdirAll(web, 0o755)
-	os.MkdirAll(data, 0o755)
-	os.WriteFile(filepath.Join(web, "index.html"), []byte("<html>ok</html>"), 0o644)
-	os.WriteFile(filepath.Join(data, "matches.json"), []byte(`[]`), 0o644)
+func TestAPIMatches(t *testing.T) {
+	ctx := context.Background()
+	dbPath := filepath.Join(t.TempDir(), "t.db")
+	s, err := store.Open("sqlite", dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	_ = s.Migrate(ctx)
+	_ = s.ReplaceAll(ctx,
+		[]store.EventRow{{EventID: 1, Title: "E", Location: "China"}},
+		[]ajp.MatchRecord{{EventID: 1, BracketID: 1, Division: "Men's / Blue / GI", MatchID: 7, LeftName: "Ann"}},
+		nil,
+	)
 
-	mux := newMux(web, data)
+	web := filepath.Join(t.TempDir(), "web")
+	os.MkdirAll(web, 0o755)
+	os.WriteFile(filepath.Join(web, "index.html"), []byte("<html>ok</html>"), 0o644)
+
+	mux := newMux(web, s)
 
 	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
-	if rec.Code != 200 || rec.Body.String() != "<html>ok</html>" {
-		t.Fatalf("web: code=%d body=%q", rec.Code, rec.Body.String())
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/matches?q=ann", nil))
+	if rec.Code != 200 {
+		t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"match_id":7`) {
+		t.Fatalf("%s", rec.Body.String())
 	}
 
 	rec2 := httptest.NewRecorder()
-	mux.ServeHTTP(rec2, httptest.NewRequest(http.MethodGet, "/data/matches.json", nil))
-	if rec2.Code != 200 || rec2.Body.String() != `[]` {
-		t.Fatalf("data: code=%d body=%q", rec2.Code, rec2.Body.String())
+	mux.ServeHTTP(rec2, httptest.NewRequest(http.MethodGet, "/", nil))
+	if rec2.Code != 200 {
+		t.Fatal(rec2.Code)
 	}
 }
