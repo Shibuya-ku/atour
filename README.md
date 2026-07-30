@@ -20,7 +20,8 @@
 |------|------|
 | 爬虫 / 导出 | Go 1.25+、标准库 `net/http` |
 | HTML 解析 | `golang.org/x/net/html` |
-| 查询页 | 原生 HTML / CSS / JS（无构建） |
+| 数据存储 | SQLite（默认）或 MySQL |
+| 查询页 | 原生 HTML / CSS / JS + REST API（无构建） |
 | 筛选单测 | Node.js（`node:test`） |
 
 ## 环境要求
@@ -38,20 +39,25 @@ cd atour
 go test ./...
 node --test web/js/filter.test.mjs
 
-# 方式 A：下载预打包数据（推荐，无需爬取）
+# 方式 A：下载预打包 SQLite（推荐）
 # https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026
-# 将 atour-data-2023-2026.zip 解压到 output/
+# 解压得到 data/atour.db
 
-# 方式 B：自行爬取（默认 2025 日历）
+# 方式 B：爬取 JSON 后导入
 go run ./cmd/ajpscrape -out output
+go run ./cmd/ajpdb import -from output -driver sqlite -dsn data/atour.db
 
-# 启动查询页
-go run ./cmd/ajpweb
+# 启动（默认 SQLite）
+go run ./cmd/ajpweb -db-driver sqlite -dsn data/atour.db
+
+# 切换 MySQL 示例
+# go run ./cmd/ajpdb import -from output -driver mysql -dsn "user:pass@tcp(127.0.0.1:3306)/atour?parseTime=true&charset=utf8mb4"
+# go run ./cmd/ajpweb -db-driver mysql -dsn "user:pass@tcp(127.0.0.1:3306)/atour?parseTime=true&charset=utf8mb4"
 ```
 
 浏览器打开：**http://localhost:8787/**
 
-`output/` 不进 Git；可从 [Release data-2023-2026](https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026) 下载，或自行爬取后再开网页。
+预打包 SQLite 见 [Release data-2023-2026](https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026)（`atour-db-2023-2026.zip`）；旧 JSON zip 仍保留作历史参考。也可自行爬取 JSON 后 `ajpdb import` 再启动。
 
 ## 爬取方式
 
@@ -122,14 +128,15 @@ go run ./cmd/ajpscrape -calendar /en/events-1/events-calendar-2026 -out output
 ```bash
 go run ./cmd/ajpweb
 # 可选参数
-go run ./cmd/ajpweb -addr :8787 -web web -data output
+go run ./cmd/ajpweb -addr :8787 -web web -db-driver sqlite -dsn data/atour.db
 ```
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | `-addr` | `:8787` | 监听地址 |
 | `-web` | `web` | 前端静态目录 |
-| `-data` | `output` | JSON 数据目录（挂载为 `/data/`） |
+| `-db-driver` | `sqlite` | 数据库驱动：`sqlite` \| `mysql` |
+| `-dsn` | `data/atour.db` | SQLite 路径或 MySQL DSN |
 
 页面能力：
 
@@ -145,10 +152,12 @@ go run ./cmd/ajpweb -addr :8787 -web web -data output
 atour/
 ├── cmd/
 │   ├── ajpscrape/     # 爬虫 CLI
-│   └── ajpweb/        # 静态站点服务
+│   ├── ajpdb/         # JSON → DB 导入
+│   └── ajpweb/        # API + 静态站点
 ├── internal/
 │   ├── ajp/           # 日历解析、过滤、拉取、流水线
-│   └── export/        # JSON 导出
+│   ├── export/        # JSON 导出
+│   └── store/         # SQLite / MySQL 存储与 API 查询
 ├── web/               # 查询页（HTML/CSS/JS）
 ├── assets/            # README 配图等
 └── testdata/          # 单测 fixture
@@ -172,7 +181,7 @@ node --test web/js/filter.test.mjs
 1. **网络与 Cloudflare**：偶发超时或拦截属正常，客户端带重试与超时；失败组别会跳过。可隔一段时间重跑覆盖。  
 2. **请求礼貌**：默认请求间隔约 250ms，组别详情 4 路并发；请勿随意加大并发以免给源站造成压力。  
 3. **数据时效**：赛程与结果以 AJP 官网为准；重新爬取会覆盖 `-out` 目录中的同名 JSON。  
-4. **体积**：完整 `events.json` 可能较大；`output/` 已 ignore，预打包数据见 [Release](https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026)。
+4. **体积**：完整 `events.json` 可能较大；查询页使用 SQLite，预打包 DB 见 [Release](https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026)（解压为 `data/atour.db`）。`output/`、`data/` 均不进 Git。
 
 ## License
 
