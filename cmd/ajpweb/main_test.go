@@ -34,6 +34,19 @@ func TestAPIMatches(t *testing.T) {
 
 	mux := newMux(web, s)
 
+	recEv := httptest.NewRecorder()
+	mux.ServeHTTP(recEv, httptest.NewRequest(http.MethodGet, "/api/events", nil))
+	if recEv.Code != 200 {
+		t.Fatalf("events code=%d body=%s", recEv.Code, recEv.Body.String())
+	}
+	evBody := recEv.Body.String()
+	if strings.Contains(evBody, `"total"`) {
+		t.Fatalf("events must not include total: %s", evBody)
+	}
+	if !strings.Contains(evBody, `"event_id":1`) {
+		t.Fatalf("events: %s", evBody)
+	}
+
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/matches?q=ann", nil))
 	if rec.Code != 200 {

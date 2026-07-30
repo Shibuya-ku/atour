@@ -125,8 +125,11 @@ go run ./cmd/ajpscrape -calendar /en/events-1/events-calendar-2026 -out output
 
 ## 查询页
 
+默认连接 SQLite 文件 `data/atour.db`（需先下载预打包 DB 或自行 `ajpdb import`）。
+
 ```bash
-go run ./cmd/ajpweb
+go run ./cmd/ajpweb -db-driver sqlite -dsn data/atour.db
+
 # 可选参数
 go run ./cmd/ajpweb -addr :8787 -web web -db-driver sqlite -dsn data/atour.db
 ```
@@ -137,6 +140,8 @@ go run ./cmd/ajpweb -addr :8787 -web web -db-driver sqlite -dsn data/atour.db
 | `-web` | `web` | 前端静态目录 |
 | `-db-driver` | `sqlite` | 数据库驱动：`sqlite` \| `mysql` |
 | `-dsn` | `data/atour.db` | SQLite 路径或 MySQL DSN |
+
+> **MySQL DSN 含密码**：`-dsn` 形如 `user:pass@tcp(...)/db?...` 时，启动日志会打印完整 DSN。生产环境请注意避免将含密码的 DSN 写入日志或 shell 历史；可考虑环境变量传参或脱敏输出。
 
 页面能力：
 
@@ -181,7 +186,8 @@ node --test web/js/filter.test.mjs
 1. **网络与 Cloudflare**：偶发超时或拦截属正常，客户端带重试与超时；失败组别会跳过。可隔一段时间重跑覆盖。  
 2. **请求礼貌**：默认请求间隔约 250ms，组别详情 4 路并发；请勿随意加大并发以免给源站造成压力。  
 3. **数据时效**：赛程与结果以 AJP 官网为准；重新爬取会覆盖 `-out` 目录中的同名 JSON。  
-4. **体积**：完整 `events.json` 可能较大；查询页使用 SQLite，预打包 DB 见 [Release](https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026)（解压为 `data/atour.db`）。`output/`、`data/` 均不进 Git。
+4. **体积**：完整 `events.json` 可能较大；查询页使用 SQLite，预打包 DB 见 [Release](https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026)（解压为 `data/atour.db`）。`output/`、`data/` 均不进 Git。  
+5. **DSN 与日志**：`ajpweb` 启动时会打印 `-dsn`；MySQL DSN 通常含密码，请勿在共享日志或截图中泄露。
 
 ## License
 

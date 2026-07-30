@@ -22,6 +22,10 @@ type eventItem struct {
 	BracketsUnavailable bool   `json:"brackets_unavailable"`
 }
 
+type eventsResponse struct {
+	Items []eventItem `json:"items"`
+}
+
 type listResponse[T any] struct {
 	Total int `json:"total"`
 	Items []T `json:"items"`
@@ -71,7 +75,7 @@ func (s *apiServer) handleEvents(w http.ResponseWriter, r *http.Request) {
 			BracketsUnavailable: row.BracketsUnavailable,
 		}
 	}
-	writeJSON(w, listResponse[eventItem]{Items: items})
+	writeJSON(w, eventsResponse{Items: items})
 }
 
 func (s *apiServer) handleMatches(w http.ResponseWriter, r *http.Request) {
