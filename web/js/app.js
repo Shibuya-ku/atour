@@ -2,13 +2,25 @@ const PAGE_SIZES = new Set([10, 20, 50, 100]);
 
 const state = {
   events: [],
-  view: "matches", // matches | placements
+  view: "matches", // matches | placements | athletes
   page: 1,
   pageSize: 20,
   total: 0,
+  selectedUserIds: new Set(),
+  athleteSearchItems: [],
 };
 
 const $ = (id) => document.getElementById(id);
+
+const FILTER_IDS = ["eventId", "gender", "belt", "style", "hideBye"];
+
+function debounce(fn, ms) {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  };
+}
 
 function readQuery() {
   return {
@@ -58,9 +70,9 @@ function visiblePages(current, pages, max = 5) {
 function updatePager() {
   const pages = pageCount();
   const pager = $("pager");
-  pager.hidden = state.total <= 0;
-  if (state.total <= 0) {
-    $("stats").textContent = "共 0 条";
+  pager.hidden = state.view === "athletes" || state.total <= 0;
+  if (state.view === "athletes" || state.total <= 0) {
+    if (state.view !== "athletes") $("stats").textContent = "共 0 条";
     $("pageNums").innerHTML = "";
     return;
   }
@@ -182,6 +194,249 @@ function escapeHtml(s) {
     .replaceAll('"', "&quot;");
 }
 
+function formatPlacement(entry) {
+  if (entry.placement_label) return entry.placement_label;
+  if (entry.placement === 0 || entry.placement === "0") return "无正式名次";
+  if (entry.placement != null) return String(entry.placement);
+  return "—";
+}
+
+function formatMapCounts(obj) {
+  if (!obj || typeof obj !== "object") return "";
+  return Object.entries(obj)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `${k} ${v}`)
+    .join(" · ");
+}
+
+function updateAthleteLoadBtn() {
+  $("athleteLoadProfile").disabled = state.selectedUserIds.size === 0;
+}
+
+function clearAthleteProfile() {
+  $("athleteSummary").hidden = true;
+  $("athleteTimelineWrap").hidden = true;
+  $("athleteEncountersWrap").hidden = true;
+  $("athleteTruncated").hidden = true;
+  $("athleteSummary").innerHTML = "";
+  $("athleteTimelineBody").innerHTML = "";
+  $("athleteEncountersBody").innerHTML = "";
+}
+
+function renderAthleteIdentities(items) {
+  const wrap = $("athleteIdentities");
+  wrap.innerHTML = "";
+  if (!items.length) {
+    $("emptyState").hidden = false;
+    $("emptyState").textContent = "无匹配选手身份";
+    return;
+  }
+  $("emptyState").hidden = true;
+  for (const item of items) {
+    const card = document.createElement("label");
+    card.className = "athlete-identity";
+    if (item.user_id === 0) card.classList.add("warn");
+    if (state.selectedUserIds.has(item.user_id)) card.classList.add("selected");
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.value = String(item.user_id);
+    cb.checked = state.selectedUserIds.has(item.user_id);
+    cb.addEventListener("change", () => {
+      if (cb.checked) state.selectedUserIds.add(item.user_id);
+      else state.selectedUserIds.delete(item.user_id);
+      card.classList.toggle("selected", cb.checked);
+      updateAthleteLoadBtn();
+      clearAthleteProfile();
+    });
+
+    const body = document.createElement("div");
+    body.className = "athlete-identity-body";
+    const warn = item.user_id === 0 ? '<span class="athlete-identity-warn">无账号 ID</span>' : "";
+    const clubs = (item.clubs || []).join(" · ") || "—";
+    body.innerHTML = `
+      <div class="athlete-identity-name">${escapeHtml(item.name)}${warn}</div>
+      <div class="athlete-identity-meta">
+        ID ${item.user_id} · ${item.event_count} 站 · ${item.match_count} 场<br />
+        最近：${escapeHtml(item.last_date_text || "—")}<br />
+        ${escapeHtml(clubs)}
+      </div>`;
+
+    card.appendChild(cb);
+    card.appendChild(body);
+    wrap.appendChild(card);
+  }
+}
+
+async function searchAthletes() {
+  const q = $("q").value.trim();
+  $("athleteSearchHint").hidden = true;
+  clearAthleteProfile();
+  if (q.length < 2) {
+    state.athleteSearchItems = [];
+    $("athleteIdentities").innerHTML = "";
+    $("emptyState").hidden = true;
+    if (q.length > 0) {
+      $("athleteSearchHint").hidden = false;
+    }
+    return;
+  }
+  try {
+    $("loadError").hidden = true;
+    const res = await fetch(`/api/athletes/search?q=${encodeURIComponent(q)}`);
+    if (!res.ok) throw new Error(`search ${res.status}`);
+    const data = await res.json();
+    state.athleteSearchItems = data.items || [];
+    renderAthleteIdentities(state.athleteSearchItems);
+    $("stats").textContent = `找到 ${state.athleteSearchItems.length} 个身份`;
+  } catch (err) {
+    $("loadError").hidden = false;
+    $("loadError").textContent = `搜索失败：${err.message}`;
+  }
+}
+
+const debouncedSearchAthletes = debounce(searchAthletes, 300);
+
+function renderAthleteSummary(summary) {
+  const el = $("athleteSummary");
+  const belts = formatMapCounts(summary.belts);
+  const styles = formatMapCounts(summary.styles);
+  const clubs = (summary.clubs || [])
+    .map((c) => `${c.name} (${c.count})`)
+    .join(" · ");
+  el.innerHTML = `
+    <div><dt>组别</dt><dd>${summary.divisions}</dd></div>
+    <div><dt>对阵</dt><dd>${summary.matches}</dd></div>
+    <div><dt>胜 / 负</dt><dd>${summary.wins} / ${summary.losses}</dd></div>
+    <div><dt>轮空</dt><dd>${summary.byes}</dd></div>
+    <div><dt>金 / 银 / 铜</dt><dd>${summary.gold} / ${summary.silver} / ${summary.bronze}</dd></div>
+    <div><dt>无正式名次</dt><dd>${summary.no_placement}</dd></div>
+    <div class="stat-group">
+      ${belts ? `<span>腰带<strong>${escapeHtml(belts)}</strong></span>` : ""}
+      ${styles ? `<span>赛制<strong>${escapeHtml(styles)}</strong></span>` : ""}
+      ${clubs ? `<span>俱乐部<strong>${escapeHtml(clubs)}</strong></span>` : ""}
+    </div>`;
+  el.hidden = false;
+}
+
+function renderAthleteTimeline(timeline) {
+  $("athleteTimelineHead").innerHTML = `<tr>
+    <th>赛事</th><th>组别</th><th>俱乐部</th><th>名次</th><th>胜/负/轮空</th>
+  </tr>`;
+  const tb = $("athleteTimelineBody");
+  tb.innerHTML = "";
+  for (const row of timeline) {
+    const tr = document.createElement("tr");
+    const title = row.title || eventTitle(row.event_id);
+    const dateLoc = [row.date_text, row.location].filter(Boolean).join(" · ");
+    tr.innerHTML = `
+      <td><div>${escapeHtml(title)}</div><div class="muted">${escapeHtml(dateLoc)}</div></td>
+      <td><div>${escapeHtml(row.division)}</div>${opponentBadge(row.opponent_count)}</td>
+      <td>${escapeHtml(row.club || "")}</td>
+      <td>${escapeHtml(formatPlacement(row))}</td>
+      <td>${row.wins} / ${row.losses} / ${row.byes}</td>`;
+    tb.appendChild(tr);
+  }
+  $("athleteTimelineWrap").hidden = timeline.length === 0;
+}
+
+function encounterResultClass(result) {
+  if (result === "win") return "enc-result-win";
+  if (result === "loss") return "enc-result-loss";
+  if (result === "bye") return "enc-result-bye";
+  return "enc-result-unknown";
+}
+
+function encounterResultLabel(result) {
+  if (result === "win") return "胜";
+  if (result === "loss") return "负";
+  if (result === "bye") return "轮空";
+  return "—";
+}
+
+function renderAthleteEncounters(encounters) {
+  $("athleteEncountersHead").innerHTML = `<tr>
+    <th>赛事</th><th>组别</th><th>轮次</th><th>对手</th><th>结果</th><th>方式</th><th>比分</th>
+  </tr>`;
+  const tb = $("athleteEncountersBody");
+  tb.innerHTML = "";
+  for (const enc of encounters) {
+    const tr = document.createElement("tr");
+    const title = enc.title || eventTitle(enc.event_id);
+    tr.innerHTML = `
+      <td><div>${escapeHtml(title)}</div><div class="muted">${escapeHtml(enc.date_text || "")}</div></td>
+      <td>${escapeHtml(enc.division)}</td>
+      <td>${escapeHtml(enc.round_name || "")}</td>
+      <td>${escapeHtml(enc.opponent_name)} <span class="muted">${escapeHtml(enc.opponent_club || "")}</span></td>
+      <td class="${encounterResultClass(enc.result)}">${encounterResultLabel(enc.result)}</td>
+      <td>${escapeHtml(enc.won_by || "")}</td>
+      <td>${escapeHtml(enc.score_text || "")}</td>`;
+    tb.appendChild(tr);
+  }
+  $("athleteEncountersWrap").hidden = encounters.length === 0;
+}
+
+async function loadAthleteProfile() {
+  if (state.selectedUserIds.size === 0) return;
+  const ids = [...state.selectedUserIds].join(",");
+  try {
+    $("loadError").hidden = true;
+    const res = await fetch(`/api/athletes/profile?user_ids=${ids}`);
+    if (!res.ok) throw new Error(`profile ${res.status}`);
+    const data = await res.json();
+    renderAthleteSummary(data.summary || {});
+    renderAthleteTimeline(data.timeline || []);
+    renderAthleteEncounters(data.encounters || []);
+    $("athleteTruncated").hidden = !data.truncated;
+    const tl = (data.timeline || []).length;
+    const enc = (data.encounters || []).length;
+    $("stats").textContent = `档案：${tl} 条时间线 · ${enc} 场对阵`;
+  } catch (err) {
+    $("loadError").hidden = false;
+    $("loadError").textContent = `档案加载失败：${err.message}`;
+  }
+}
+
+function setMatchFiltersVisible(visible) {
+  for (const id of FILTER_IDS) {
+    const el = $(id);
+    const label = el.closest("label");
+    if (label) label.hidden = !visible;
+  }
+  if (visible) {
+    $("hideBye").closest("label").hidden = state.view === "placements";
+  }
+}
+
+function setViewMode(view) {
+  state.view = view;
+  $("viewMatches").classList.toggle("active", view === "matches");
+  $("viewPlacements").classList.toggle("active", view === "placements");
+  $("viewAthletes").classList.toggle("active", view === "athletes");
+
+  const isAthletes = view === "athletes";
+  setMatchFiltersVisible(!isAthletes);
+  $("q").placeholder = isAthletes ? "选手姓名" : "选手 / 俱乐部";
+  $("resultTableWrap").hidden = isAthletes;
+  $("pager").hidden = isAthletes || state.total <= 0;
+  $("athletePanel").hidden = !isAthletes;
+  $("emptyState").hidden = true;
+  $("athleteSearchHint").hidden = true;
+
+  if (isAthletes) {
+    clearAthleteProfile();
+    const q = $("q").value.trim();
+    if (q.length >= 2) searchAthletes();
+    else $("stats").textContent = "";
+  } else {
+    state.selectedUserIds.clear();
+    updateAthleteLoadBtn();
+    $("athleteIdentities").innerHTML = "";
+    resetPage();
+    refresh();
+  }
+}
+
 async function loadEvents() {
   const res = await fetch("/api/events");
   if (!res.ok) throw new Error(`events ${res.status}`);
@@ -191,6 +446,7 @@ async function loadEvents() {
 }
 
 async function refresh() {
+  if (state.view === "athletes") return;
   try {
     $("loadError").hidden = true;
     const p = queryParams();
@@ -206,6 +462,7 @@ async function refresh() {
       return;
     }
     $("emptyState").hidden = state.total > 0;
+    $("emptyState").textContent = "无匹配结果";
     updatePager();
     if (state.view === "matches") renderMatches(data.items || []);
     else renderPlacements(data.items || []);
@@ -216,6 +473,10 @@ async function refresh() {
 }
 
 function onFilterChange() {
+  if (state.view === "athletes") {
+    debouncedSearchAthletes();
+    return;
+  }
   resetPage();
   refresh();
 }
@@ -252,22 +513,10 @@ function bind() {
     state.page = pages;
     refresh();
   });
-  $("viewMatches").addEventListener("click", () => {
-    state.view = "matches";
-    $("viewMatches").classList.add("active");
-    $("viewPlacements").classList.remove("active");
-    $("hideBye").closest("label").hidden = false;
-    resetPage();
-    refresh();
-  });
-  $("viewPlacements").addEventListener("click", () => {
-    state.view = "placements";
-    $("viewPlacements").classList.add("active");
-    $("viewMatches").classList.remove("active");
-    $("hideBye").closest("label").hidden = true;
-    resetPage();
-    refresh();
-  });
+  $("viewMatches").addEventListener("click", () => setViewMode("matches"));
+  $("viewPlacements").addEventListener("click", () => setViewMode("placements"));
+  $("viewAthletes").addEventListener("click", () => setViewMode("athletes"));
+  $("athleteLoadProfile").addEventListener("click", loadAthleteProfile);
 }
 
 async function load() {

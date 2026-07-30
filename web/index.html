@@ -62,13 +62,42 @@
     <div class="view-toggle" role="group" aria-label="视图">
       <button type="button" id="viewMatches" class="active">对阵</button>
       <button type="button" id="viewPlacements">名次</button>
+      <button type="button" id="viewAthletes">选手</button>
     </div>
   </section>
 
   <p id="loadError" class="error" hidden></p>
   <p id="emptyState" class="empty" hidden>无匹配结果</p>
+  <p id="athleteSearchHint" class="empty" hidden>请输入至少 2 个字符搜索选手</p>
 
-  <div class="table-wrap">
+  <section id="athletePanel" hidden>
+    <div id="athleteIdentities" class="athlete-identities"></div>
+    <div class="athlete-actions">
+      <button type="button" id="athleteLoadProfile" disabled>查看档案</button>
+    </div>
+    <p id="athleteTruncated" class="athlete-truncated" hidden>数据已截断，仅显示部分记录</p>
+    <div id="athleteSummary" class="athlete-summary" hidden></div>
+    <div id="athleteTimelineWrap" hidden>
+      <h2 class="section-title">时间线</h2>
+      <div class="table-wrap">
+        <table class="data">
+          <thead id="athleteTimelineHead"></thead>
+          <tbody id="athleteTimelineBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="athleteEncountersWrap" hidden>
+      <h2 class="section-title">对阵明细</h2>
+      <div class="table-wrap">
+        <table class="data">
+          <thead id="athleteEncountersHead"></thead>
+          <tbody id="athleteEncountersBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <div id="resultTableWrap" class="table-wrap">
     <table class="data">
       <thead id="resultHead"></thead>
       <tbody id="resultBody"></tbody>
