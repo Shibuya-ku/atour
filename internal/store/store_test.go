@@ -93,3 +93,10 @@ func TestParseDivision(t *testing.T) {
 		t.Fatalf("%q %q %q", g, b, st)
 	}
 }
+
+func TestOpenMySQLInvalidDSN(t *testing.T) {
+	_, err := Open("mysql", "invalid")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
