@@ -1,6 +1,11 @@
+const PAGE_SIZES = new Set([10, 20, 50, 100]);
+
 const state = {
   events: [],
   view: "matches", // matches | placements
+  page: 1,
+  pageSize: 20,
+  total: 0,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -25,7 +30,71 @@ function queryParams() {
   if (q.belt) p.set("belt", q.belt);
   if (q.style) p.set("style", q.style);
   if (state.view === "matches" && q.hideBye) p.set("hide_bye", "1");
+  p.set("limit", String(state.pageSize));
+  p.set("offset", String((state.page - 1) * state.pageSize));
   return p;
+}
+
+function pageCount() {
+  if (state.total <= 0) return 0;
+  return Math.ceil(state.total / state.pageSize);
+}
+
+/** 当前页附近最多 5 个连续页码 */
+function visiblePages(current, pages, max = 5) {
+  if (pages <= 0) return [];
+  if (pages <= max) {
+    return Array.from({ length: pages }, (_, i) => i + 1);
+  }
+  let start = Math.max(1, current - Math.floor(max / 2));
+  let end = start + max - 1;
+  if (end > pages) {
+    end = pages;
+    start = end - max + 1;
+  }
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+}
+
+function updatePager() {
+  const pages = pageCount();
+  const pager = $("pager");
+  pager.hidden = state.total <= 0;
+  if (state.total <= 0) {
+    $("stats").textContent = "共 0 条";
+    $("pageNums").innerHTML = "";
+    return;
+  }
+  const from = (state.page - 1) * state.pageSize + 1;
+  const to = Math.min(state.page * state.pageSize, state.total);
+  $("stats").textContent = `共 ${state.total} 条`;
+  $("pageInfo").textContent = `第 ${state.page} / ${pages} 页 · 显示 ${from}–${to}`;
+  $("pagePrev").disabled = state.page <= 1;
+  $("pageNext").disabled = state.page >= pages;
+  $("pageFirst").disabled = state.page <= 1;
+  $("pageLast").disabled = state.page >= pages;
+
+  const nums = $("pageNums");
+  nums.innerHTML = "";
+  for (const n of visiblePages(state.page, pages, 5)) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = String(n);
+    btn.setAttribute("aria-label", `第 ${n} 页`);
+    if (n === state.page) {
+      btn.classList.add("active");
+      btn.setAttribute("aria-current", "page");
+    } else {
+      btn.addEventListener("click", () => {
+        state.page = n;
+        refresh();
+      });
+    }
+    nums.appendChild(btn);
+  }
+}
+
+function resetPage() {
+  state.page = 1;
 }
 
 function eventTitle(id) {
@@ -129,9 +198,15 @@ async function refresh() {
     const res = await fetch(`${path}?${p}`);
     if (!res.ok) throw new Error(`${path} ${res.status}`);
     const data = await res.json();
-    const n = data.total ?? (data.items || []).length;
-    $("emptyState").hidden = n > 0;
-    $("stats").textContent = `共 ${data.total} 条`;
+    state.total = Number(data.total) || 0;
+    const pages = pageCount();
+    if (pages > 0 && state.page > pages) {
+      state.page = pages;
+      await refresh();
+      return;
+    }
+    $("emptyState").hidden = state.total > 0;
+    updatePager();
     if (state.view === "matches") renderMatches(data.items || []);
     else renderPlacements(data.items || []);
   } catch (err) {
@@ -140,16 +215,49 @@ async function refresh() {
   }
 }
 
+function onFilterChange() {
+  resetPage();
+  refresh();
+}
+
 function bind() {
   for (const id of ["q", "eventId", "gender", "belt", "style", "hideBye"]) {
-    $(id).addEventListener("input", () => refresh());
-    $(id).addEventListener("change", () => refresh());
+    $(id).addEventListener("input", onFilterChange);
+    $(id).addEventListener("change", onFilterChange);
   }
+  $("pageSize").addEventListener("change", () => {
+    const n = Number($("pageSize").value);
+    state.pageSize = PAGE_SIZES.has(n) ? n : 20;
+    resetPage();
+    refresh();
+  });
+  $("pageFirst").addEventListener("click", () => {
+    if (state.page <= 1) return;
+    state.page = 1;
+    refresh();
+  });
+  $("pagePrev").addEventListener("click", () => {
+    if (state.page <= 1) return;
+    state.page -= 1;
+    refresh();
+  });
+  $("pageNext").addEventListener("click", () => {
+    if (state.page >= pageCount()) return;
+    state.page += 1;
+    refresh();
+  });
+  $("pageLast").addEventListener("click", () => {
+    const pages = pageCount();
+    if (state.page >= pages) return;
+    state.page = pages;
+    refresh();
+  });
   $("viewMatches").addEventListener("click", () => {
     state.view = "matches";
     $("viewMatches").classList.add("active");
     $("viewPlacements").classList.remove("active");
     $("hideBye").closest("label").hidden = false;
+    resetPage();
     refresh();
   });
   $("viewPlacements").addEventListener("click", () => {
@@ -157,6 +265,7 @@ function bind() {
     $("viewPlacements").classList.add("active");
     $("viewMatches").classList.remove("active");
     $("hideBye").closest("label").hidden = true;
+    resetPage();
     refresh();
   });
 }
