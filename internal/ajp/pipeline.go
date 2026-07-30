@@ -47,6 +47,34 @@ func Run(ctx context.Context, c *Client, calendarPath string) ([]EventResult, er
 	return results, nil
 }
 
+// RunMany 依次爬取多个日历，按 event_id 合并（后者覆盖同 ID）。
+func RunMany(ctx context.Context, c *Client, calendarPaths []string) ([]EventResult, error) {
+	var all []EventResult
+	for _, path := range calendarPaths {
+		log.Printf("calendar %s", path)
+		part, err := Run(ctx, c, path)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", path, err)
+		}
+		idx := map[int]int{}
+		out := make([]EventResult, 0, len(all)+len(part))
+		for _, er := range all {
+			idx[er.Event.ID] = len(out)
+			out = append(out, er)
+		}
+		for _, er := range part {
+			if i, ok := idx[er.Event.ID]; ok {
+				out[i] = er
+				continue
+			}
+			idx[er.Event.ID] = len(out)
+			out = append(out, er)
+		}
+		all = out
+	}
+	return all, nil
+}
+
 func fetchBracketsParallel(ctx context.Context, c *Client, eventID int, targets []BracketMeta, workers int) []BracketResult {
 	if len(targets) == 0 {
 		return nil

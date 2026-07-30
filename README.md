@@ -146,9 +146,8 @@ atour/
 │   ├── ajp/           # 日历解析、过滤、拉取、流水线
 │   └── export/        # JSON 导出
 ├── web/               # 查询页（HTML/CSS/JS）
-├── output/            # 爬取结果（默认不提交，需自行生成或保留）
-├── testdata/          # 单测 fixture
-└── docs/superpowers/plans/  # 实现计划文档
+├── assets/            # README 配图等
+└── testdata/          # 单测 fixture
 ```
 
 ## 测试

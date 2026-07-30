@@ -34,3 +34,25 @@ func TestWriteAll(t *testing.T) {
 		t.Fatalf("%d", len(matches))
 	}
 }
+
+func TestMergeByEventID(t *testing.T) {
+	base := []ajp.EventResult{{Event: ajp.EventSummary{ID: 1, Title: "old"}}}
+	extra := []ajp.EventResult{
+		{Event: ajp.EventSummary{ID: 1, Title: "new"}},
+		{Event: ajp.EventSummary{ID: 2, Title: "b"}},
+	}
+	out := MergeByEventID(base, extra)
+	if len(out) != 2 {
+		t.Fatalf("%d", len(out))
+	}
+	if out[0].Event.Title != "new" || out[1].Event.ID != 2 {
+		t.Fatalf("%+v", out)
+	}
+}
+
+func TestLoadEventsMissing(t *testing.T) {
+	got, err := LoadEvents(t.TempDir())
+	if err != nil || len(got) != 0 {
+		t.Fatalf("got=%v err=%v", got, err)
+	}
+}
