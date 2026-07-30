@@ -46,3 +46,5 @@ Thumbs.db
 # Temp
 *.tmp
 *.temp
+*.zip
+atour-data-release-notes.md

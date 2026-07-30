@@ -38,7 +38,11 @@ cd atour
 go test ./...
 node --test web/js/filter.test.mjs
 
-# 爬取（默认 2025 日历）
+# 方式 A：下载预打包数据（推荐，无需爬取）
+# https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026
+# 将 atour-data-2023-2026.zip 解压到 output/
+
+# 方式 B：自行爬取（默认 2025 日历）
 go run ./cmd/ajpscrape -out output
 
 # 启动查询页
@@ -47,7 +51,7 @@ go run ./cmd/ajpweb
 
 浏览器打开：**http://localhost:8787/**
 
-若仓库未包含 `output/` 数据，需先完成爬取再开网页。
+`output/` 不进 Git；可从 [Release data-2023-2026](https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026) 下载，或自行爬取后再开网页。
 
 ## 爬取方式
 
@@ -168,7 +172,7 @@ node --test web/js/filter.test.mjs
 1. **网络与 Cloudflare**：偶发超时或拦截属正常，客户端带重试与超时；失败组别会跳过。可隔一段时间重跑覆盖。  
 2. **请求礼貌**：默认请求间隔约 250ms，组别详情 4 路并发；请勿随意加大并发以免给源站造成压力。  
 3. **数据时效**：赛程与结果以 AJP 官网为准；重新爬取会覆盖 `-out` 目录中的同名 JSON。  
-4. **体积**：完整 `events.json` 可能较大；GitHub 推送前请确认是否需要忽略 `output/`（见仓库 `.gitignore`）。
+4. **体积**：完整 `events.json` 可能较大；`output/` 已 ignore，预打包数据见 [Release](https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026)。
 
 ## License
 
