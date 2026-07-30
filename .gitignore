@@ -58,3 +58,7 @@ atour-data-release-notes.md
 # Git worktrees
 .worktrees/
 
+
+# SDD / agent scratch
+.superpowers/
+
