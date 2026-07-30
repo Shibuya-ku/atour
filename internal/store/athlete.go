@@ -20,45 +20,71 @@ const (
 )
 
 type AthleteIdentity struct {
-	UserID       int
-	Name         string
-	Clubs        []string
-	EventCount   int
-	MatchCount   int
-	LastDateText string
+	UserID       int      `json:"user_id"`
+	Name         string   `json:"name"`
+	Clubs        []string `json:"clubs"`
+	EventCount   int      `json:"event_count"`
+	MatchCount   int      `json:"match_count"`
+	LastDateText string   `json:"last_date_text"`
 }
 
 type ClubCount struct {
-	Name  string
-	Count int
+	Name  string `json:"name"`
+	Count int    `json:"count"`
 }
 
 type AthleteSummary struct {
-	Divisions, Matches, Wins, Losses, Byes, Gold, Silver, Bronze, NoPlacement int
-	Belts         map[string]int
-	Styles        map[string]int
-	Clubs         []ClubCount
+	Divisions     int            `json:"divisions"`
+	Matches       int            `json:"matches"`
+	Wins          int            `json:"wins"`
+	Losses        int            `json:"losses"`
+	Byes          int            `json:"byes"`
+	Gold          int            `json:"gold"`
+	Silver        int            `json:"silver"`
+	Bronze        int            `json:"bronze"`
+	NoPlacement   int            `json:"no_placement"`
+	Belts         map[string]int   `json:"belts"`
+	Styles        map[string]int   `json:"styles"`
+	Clubs         []ClubCount      `json:"clubs"`
 }
 
 type TimelineEntry struct {
-	EventID, BracketID                                                          int
-	Title, DateText, Location, Division, Club                                   string
-	Placement                                                                   *int
-	PlacementLabel                                                              string
-	OpponentCount, Wins, Losses, Byes                                           int
+	EventID        int    `json:"event_id"`
+	BracketID      int    `json:"bracket_id"`
+	Title          string `json:"title"`
+	DateText       string `json:"date_text"`
+	Location       string `json:"location"`
+	Division       string `json:"division"`
+	Club           string `json:"club"`
+	Placement      *int   `json:"placement,omitempty"`
+	PlacementLabel string `json:"placement_label"`
+	OpponentCount  int    `json:"opponent_count"`
+	Wins           int    `json:"wins"`
+	Losses         int    `json:"losses"`
+	Byes           int    `json:"byes"`
 }
 
 type Encounter struct {
-	EventID, BracketID, MatchID                                                 int
-	Title, DateText, Division, RoundName, OpponentName, OpponentClub, Result, WonBy, ScoreText string
+	EventID      int    `json:"event_id"`
+	BracketID    int    `json:"bracket_id"`
+	MatchID      int    `json:"match_id"`
+	Title        string `json:"title"`
+	DateText     string `json:"date_text"`
+	Division     string `json:"division"`
+	RoundName    string `json:"round_name"`
+	OpponentName string `json:"opponent_name"`
+	OpponentClub string `json:"opponent_club"`
+	Result       string `json:"result"`
+	WonBy        string `json:"won_by"`
+	ScoreText    string `json:"score_text"`
 }
 
 type AthleteProfileResult struct {
-	Identities []AthleteIdentity
-	Summary    AthleteSummary
-	Timeline   []TimelineEntry
-	Encounters []Encounter
-	Truncated  bool
+	Identities []AthleteIdentity `json:"identities"`
+	Summary    AthleteSummary    `json:"summary"`
+	Timeline   []TimelineEntry   `json:"timeline"`
+	Encounters []Encounter       `json:"encounters"`
+	Truncated  bool              `json:"truncated"`
 }
 
 type bracketKey struct {

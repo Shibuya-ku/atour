@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"atour/internal/ajp"
 	"atour/internal/store"
@@ -110,12 +112,68 @@ func (s *apiServer) handlePlacements(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, listResponse[ajp.PlacementRecord]{Total: total, Items: items})
 }
 
+func (s *apiServer) handleAthleteSearch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	items, err := s.store.SearchAthletes(r.Context(), q, 50)
+	if errors.Is(err, store.ErrQueryTooShort) {
+		http.Error(w, "q too short", http.StatusBadRequest)
+		return
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if items == nil {
+		items = []store.AthleteIdentity{}
+	}
+	writeJSON(w, map[string]any{"items": items})
+}
+
+func parseUserIDs(raw string) []int {
+	parts := strings.Split(raw, ",")
+	var ids []int
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		if id, err := strconv.Atoi(p); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+func (s *apiServer) handleAthleteProfile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	ids := parseUserIDs(r.URL.Query().Get("user_ids"))
+	prof, err := s.store.AthleteProfile(r.Context(), ids)
+	if errors.Is(err, store.ErrNoUserIDs) {
+		http.Error(w, "user_ids required", http.StatusBadRequest)
+		return
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, prof)
+}
+
 func newMux(webDir string, s store.Store) http.Handler {
 	mux := http.NewServeMux()
 	srv := &apiServer{store: s}
 	mux.HandleFunc("/api/events", srv.handleEvents)
 	mux.HandleFunc("/api/matches", srv.handleMatches)
 	mux.HandleFunc("/api/placements", srv.handlePlacements)
+	mux.HandleFunc("/api/athletes/search", srv.handleAthleteSearch)
+	mux.HandleFunc("/api/athletes/profile", srv.handleAthleteProfile)
 	mux.Handle("/", http.FileServer(http.Dir(webDir)))
 	return mux
 }
