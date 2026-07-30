@@ -23,7 +23,7 @@ type eventItem struct {
 }
 
 type listResponse[T any] struct {
-	Total int `json:"total,omitempty"`
+	Total int `json:"total"`
 	Items []T `json:"items"`
 }
 

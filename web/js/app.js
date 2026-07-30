@@ -1,9 +1,5 @@
-import { filterMatches, filterPlacements } from "./filter.js";
-
 const state = {
   events: [],
-  matches: [],
-  placements: [],
   view: "matches", // matches | placements
 };
 
@@ -18,6 +14,18 @@ function readQuery() {
     style: $("style").value,
     hideBye: $("hideBye").checked,
   };
+}
+
+function queryParams() {
+  const q = readQuery();
+  const p = new URLSearchParams();
+  if (q.q) p.set("q", q.q);
+  if (q.eventId && q.eventId !== "0") p.set("event_id", String(q.eventId));
+  if (q.gender) p.set("gender", q.gender);
+  if (q.belt) p.set("belt", q.belt);
+  if (q.style) p.set("style", q.style);
+  if (state.view === "matches" && q.hideBye) p.set("hide_bye", "1");
+  return p;
 }
 
 function eventTitle(id) {
@@ -105,26 +113,37 @@ function escapeHtml(s) {
     .replaceAll('"', "&quot;");
 }
 
-function refresh() {
-  const query = readQuery();
-  let n = 0;
-  if (state.view === "matches") {
-    const rows = filterMatches(state.matches, query);
-    n = rows.length;
-    renderMatches(rows);
-  } else {
-    const rows = filterPlacements(state.placements, query);
-    n = rows.length;
-    renderPlacements(rows);
+async function loadEvents() {
+  const res = await fetch("/api/events");
+  if (!res.ok) throw new Error(`events ${res.status}`);
+  const data = await res.json();
+  state.events = data.items || [];
+  fillEvents();
+}
+
+async function refresh() {
+  try {
+    $("loadError").hidden = true;
+    const p = queryParams();
+    const path = state.view === "matches" ? "/api/matches" : "/api/placements";
+    const res = await fetch(`${path}?${p}`);
+    if (!res.ok) throw new Error(`${path} ${res.status}`);
+    const data = await res.json();
+    const n = data.total ?? (data.items || []).length;
+    $("emptyState").hidden = n > 0;
+    $("stats").textContent = `共 ${data.total} 条`;
+    if (state.view === "matches") renderMatches(data.items || []);
+    else renderPlacements(data.items || []);
+  } catch (err) {
+    $("loadError").hidden = false;
+    $("loadError").textContent = `加载失败：${err.message}`;
   }
-  $("emptyState").hidden = n > 0;
-  $("stats").textContent = `显示 ${n} 条 · 库内对阵 ${state.matches.length} / 名次 ${state.placements.length}`;
 }
 
 function bind() {
   for (const id of ["q", "eventId", "gender", "belt", "style", "hideBye"]) {
-    $(id).addEventListener("input", refresh);
-    $(id).addEventListener("change", refresh);
+    $(id).addEventListener("input", () => refresh());
+    $(id).addEventListener("change", () => refresh());
   }
   $("viewMatches").addEventListener("click", () => {
     state.view = "matches";
@@ -144,32 +163,13 @@ function bind() {
 
 async function load() {
   try {
-    const [eventsRaw, matches, placements] = await Promise.all([
-      fetch("/data/events.json").then((r) => {
-        if (!r.ok) throw new Error(`events.json ${r.status}`);
-        return r.json();
-      }),
-      fetch("/data/matches.json").then((r) => {
-        if (!r.ok) throw new Error(`matches.json ${r.status}`);
-        return r.json();
-      }),
-      fetch("/data/placements.json").then((r) => {
-        if (!r.ok) throw new Error(`placements.json ${r.status}`);
-        return r.json();
-      }),
-    ]);
-    state.events = eventsRaw.map((row) => ({
-      ...row.event,
-      brackets_unavailable: row.brackets_unavailable,
-    }));
-    state.matches = matches;
-    state.placements = placements;
-    fillEvents();
-    refresh();
+    $("loadError").hidden = true;
+    await loadEvents();
+    await refresh();
   } catch (err) {
     $("loadError").hidden = false;
     $("loadError").textContent =
-      `加载失败：${err.message}。请先 go run ./cmd/ajpscrape -out output，再 go run ./cmd/ajpweb`;
+      `加载失败：${err.message}。请先 go run ./cmd/ajpdb import -from output -dsn data/atour.db，再 go run ./cmd/ajpweb -dsn data/atour.db`;
   }
 }
 
