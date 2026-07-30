@@ -48,3 +48,7 @@ Thumbs.db
 *.temp
 *.zip
 atour-data-release-notes.md
+
+# Git worktrees
+.worktrees/
+
