@@ -33,6 +33,7 @@ type Store interface {
 	ListMatches(ctx context.Context, q FilterQuery) (items []ajp.MatchRecord, total int, err error)
 	ListPlacements(ctx context.Context, q FilterQuery) (items []ajp.PlacementRecord, total int, err error)
 	ReplaceAll(ctx context.Context, events []EventRow, matches []ajp.MatchRecord, placements []ajp.PlacementRecord) error
+	SearchAthletes(ctx context.Context, q string, limit int) ([]AthleteIdentity, error)
 }
 
 func Open(driver, dsn string) (Store, error) {
