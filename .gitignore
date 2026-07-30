@@ -26,13 +26,16 @@ vendor/
 *.err.log
 logs/
 
-# 文档：忽略实现计划；保留可提交的设计规格
+# 文档：忽略杂项；保留 specs 与 plans
 /docs/*
 !/docs/superpowers/
 /docs/superpowers/*
 !/docs/superpowers/specs/
 /docs/superpowers/specs/*
 !/docs/superpowers/specs/*.md
+!/docs/superpowers/plans/
+/docs/superpowers/plans/*
+!/docs/superpowers/plans/*.md
 
 # AI / Agent 工具目录
 .cursor/
