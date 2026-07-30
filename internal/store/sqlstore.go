@@ -11,6 +11,8 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+var _ Store = (*SQLStore)(nil)
+
 type SQLStore struct {
 	db     *sql.DB
 	driver string
@@ -43,12 +45,16 @@ func openSQL(driver, dsn string) (*SQLStore, error) {
 func (s *SQLStore) Close() error { return s.db.Close() }
 
 func (s *SQLStore) Migrate(ctx context.Context) error {
-	ddl := schemaSQLite
+	stmts := schemaSQLite
 	if s.driver == "mysql" {
-		ddl = schemaMySQL
+		stmts = schemaMySQL
 	}
-	_, err := s.db.ExecContext(ctx, ddl)
-	return err
+	for _, stmt := range stmts {
+		if _, err := s.db.ExecContext(ctx, stmt); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *SQLStore) ListEvents(ctx context.Context) ([]EventRow, error) {

@@ -1,16 +1,15 @@
 package store
 
-const schemaSQLite = `
-CREATE TABLE IF NOT EXISTS events (
+var schemaSQLite = []string{
+	`CREATE TABLE IF NOT EXISTS events (
   event_id INTEGER PRIMARY KEY,
   title TEXT NOT NULL,
   url TEXT NOT NULL DEFAULT '',
   location TEXT NOT NULL DEFAULT '',
   date_text TEXT NOT NULL DEFAULT '',
   brackets_unavailable INTEGER NOT NULL DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS matches (
+)`,
+	`CREATE TABLE IF NOT EXISTS matches (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   event_id INTEGER NOT NULL,
   bracket_id INTEGER NOT NULL,
@@ -42,11 +41,10 @@ CREATE TABLE IF NOT EXISTS matches (
   estimated_start TEXT NOT NULL DEFAULT '',
   registrations_count INTEGER NOT NULL DEFAULT 0,
   opponent_count INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_matches_event ON matches(event_id);
-CREATE INDEX IF NOT EXISTS idx_matches_div ON matches(gender, belt, style);
-
-CREATE TABLE IF NOT EXISTS placements (
+)`,
+	`CREATE INDEX IF NOT EXISTS idx_matches_event ON matches(event_id)`,
+	`CREATE INDEX IF NOT EXISTS idx_matches_div ON matches(gender, belt, style)`,
+	`CREATE TABLE IF NOT EXISTS placements (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   event_id INTEGER NOT NULL,
   bracket_id INTEGER NOT NULL,
@@ -61,22 +59,21 @@ CREATE TABLE IF NOT EXISTS placements (
   affiliation_name TEXT NOT NULL DEFAULT '',
   registrations_count INTEGER NOT NULL DEFAULT 0,
   opponent_count INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_placements_event ON placements(event_id);
-CREATE INDEX IF NOT EXISTS idx_placements_div ON placements(gender, belt, style);
-`
+)`,
+	`CREATE INDEX IF NOT EXISTS idx_placements_event ON placements(event_id)`,
+	`CREATE INDEX IF NOT EXISTS idx_placements_div ON placements(gender, belt, style)`,
+}
 
-const schemaMySQL = `
-CREATE TABLE IF NOT EXISTS events (
+var schemaMySQL = []string{
+	`CREATE TABLE IF NOT EXISTS events (
   event_id INT PRIMARY KEY,
   title TEXT NOT NULL,
   url TEXT NOT NULL DEFAULT '',
   location TEXT NOT NULL DEFAULT '',
   date_text TEXT NOT NULL DEFAULT '',
   brackets_unavailable INTEGER NOT NULL DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS matches (
+)`,
+	`CREATE TABLE IF NOT EXISTS matches (
   id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   event_id INTEGER NOT NULL,
   bracket_id INTEGER NOT NULL,
@@ -108,11 +105,10 @@ CREATE TABLE IF NOT EXISTS matches (
   estimated_start TEXT NOT NULL DEFAULT '',
   registrations_count INTEGER NOT NULL DEFAULT 0,
   opponent_count INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_matches_event ON matches(event_id);
-CREATE INDEX IF NOT EXISTS idx_matches_div ON matches(gender, belt, style);
-
-CREATE TABLE IF NOT EXISTS placements (
+)`,
+	`CREATE INDEX IF NOT EXISTS idx_matches_event ON matches(event_id)`,
+	`CREATE INDEX IF NOT EXISTS idx_matches_div ON matches(gender, belt, style)`,
+	`CREATE TABLE IF NOT EXISTS placements (
   id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   event_id INTEGER NOT NULL,
   bracket_id INTEGER NOT NULL,
@@ -127,7 +123,7 @@ CREATE TABLE IF NOT EXISTS placements (
   affiliation_name TEXT NOT NULL DEFAULT '',
   registrations_count INTEGER NOT NULL DEFAULT 0,
   opponent_count INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_placements_event ON placements(event_id);
-CREATE INDEX IF NOT EXISTS idx_placements_div ON placements(gender, belt, style);
-`
+)`,
+	`CREATE INDEX IF NOT EXISTS idx_placements_event ON placements(event_id)`,
+	`CREATE INDEX IF NOT EXISTS idx_placements_div ON placements(gender, belt, style)`,
+}
