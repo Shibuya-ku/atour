@@ -49,6 +49,7 @@ logs/
 .agent/
 .agents/
 .copilot/
+.trae/
 
 # IDE / OS
 .idea/
