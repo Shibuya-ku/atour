@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"atour/internal/ajp"
@@ -18,8 +19,13 @@ func main() {
 	calendars := flag.String("calendars", "", "comma-separated calendar paths; overrides -calendar when set")
 	out := flag.String("out", "output", "output directory")
 	merge := flag.Bool("merge", false, "merge with existing events.json in -out")
+	eventIDsArg := flag.String("event-ids", "", "comma-separated event IDs; empty selects all China events")
 	listOnly := flag.Bool("list-only", false, "only list china events / adult White+ divisions")
 	flag.Parse()
+	eventIDs, err := parseEventIDs(*eventIDsArg)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	paths := []string{*calendar}
 	if strings.TrimSpace(*calendars) != "" {
@@ -48,7 +54,7 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			events = ajp.DedupeEventsByID(ajp.FilterChinaEvents(events))
+			events = ajp.FilterEventsByID(ajp.DedupeEventsByID(ajp.FilterChinaEvents(events)), eventIDs)
 			for _, ev := range events {
 				fmt.Printf("%d\t%s\t%s\n", ev.ID, ev.Location, ev.Title)
 				brackets, err := client.ListBrackets(ctx, ev.ID)
@@ -64,7 +70,7 @@ func main() {
 		return
 	}
 
-	results, err := ajp.RunMany(ctx, client, paths)
+	results, err := ajp.RunManySelected(ctx, client, paths, eventIDs)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -86,4 +92,20 @@ func main() {
 		}
 	}
 	fmt.Fprintf(os.Stderr, "events=%d matches=%d out=%s\n", len(results), nMatch, *out)
+}
+
+func parseEventIDs(value string) (map[int]struct{}, error) {
+	ids := make(map[int]struct{})
+	for _, part := range strings.Split(value, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		id, err := strconv.Atoi(part)
+		if err != nil || id <= 0 {
+			return nil, fmt.Errorf("invalid event ID %q", part)
+		}
+		ids[id] = struct{}{}
+	}
+	return ids, nil
 }

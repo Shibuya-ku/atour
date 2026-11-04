@@ -42,7 +42,7 @@ go test ./...
 node --test web/js/filter.test.mjs
 
 # 方式 A：下载预打包 SQLite（推荐）
-# https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026
+# https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026-10
 # 解压得到 data/atour.db
 
 # 方式 B：爬取 JSON 后导入
@@ -59,7 +59,7 @@ go run ./cmd/ajpweb -db-driver sqlite -dsn data/atour.db
 
 浏览器打开：**http://localhost:8787/**
 
-预打包 SQLite 见 [Release data-2023-2026](https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026)（`atour-db-2023-2026.zip`）；旧 JSON zip 仍保留作历史参考。也可自行爬取 JSON 后 `ajpdb import` 再启动。
+预打包 SQLite 见 [Release data-2023-2026-10](https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026-10)（`atour-db-2023-2026-10.zip`，含 2026 年 10 月上海站）；旧 JSON zip 仍保留作历史参考。也可自行爬取 JSON 后 `ajpdb import` 再启动。`ajpdb import` 会用输入 JSON 重建整库，因此局部赛事 JSON 不应直接导入完整数据库。
 
 ## 爬取方式
 
@@ -74,6 +74,9 @@ go run ./cmd/ajpscrape -calendar /en/events-1/events-calendar-2025 -out output
 
 # 爬取 2026 赛季
 go run ./cmd/ajpscrape -calendar /en/events-1/events-calendar-2026 -out output
+
+# 只爬取指定赛事
+go run ./cmd/ajpscrape -calendar /en/events-1/events-calendar-2026 -event-ids 1561,1562 -out output
 ```
 
 ### 参数
@@ -83,6 +86,7 @@ go run ./cmd/ajpscrape -calendar /en/events-1/events-calendar-2026 -out output
 | `-base` | `https://ajptour.com` | 站点根地址 |
 | `-calendar` | `/en/events-1/events-calendar-2025` | 日历页路径 |
 | `-out` | `output` | JSON 输出目录 |
+| `-event-ids` | 空 | 逗号分隔的赛事 ID；为空时处理全部中国站 |
 | `-list-only` | `false` | 只打印赛事/组别列表 |
 
 ### 爬取流程（简述）
@@ -191,7 +195,7 @@ node --test web/js/filter.test.mjs
 1. **网络与 Cloudflare**：偶发超时或拦截属正常，客户端带重试与超时；失败组别会跳过。可隔一段时间重跑覆盖。  
 2. **请求礼貌**：默认请求间隔约 250ms，组别详情 4 路并发；请勿随意加大并发以免给源站造成压力。  
 3. **数据时效**：赛程与结果以 AJP 官网为准；重新爬取会覆盖 `-out` 目录中的同名 JSON。  
-4. **体积**：完整 `events.json` 可能较大；查询页使用 SQLite，预打包 DB 见 [Release](https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026)（解压为 `data/atour.db`）。`output/`、`data/` 均不进 Git。  
+4. **体积**：完整 `events.json` 可能较大；查询页使用 SQLite，预打包 DB 见 [Release](https://github.com/Shibuya-ku/atour/releases/tag/data-2023-2026-10)（解压为 `data/atour.db`）。`output/`、`data/` 均不进 Git。
 5. **DSN 与日志**：`ajpweb` 启动时会打印 `-dsn`；MySQL DSN 通常含密码，请勿在共享日志或截图中泄露。
 
 ## License

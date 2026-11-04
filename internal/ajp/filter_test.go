@@ -42,3 +42,14 @@ func TestFilterChinaAndDedupe(t *testing.T) {
 		t.Fatalf("%+v", deduped)
 	}
 }
+
+func TestFilterEventsByID(t *testing.T) {
+	events := []EventSummary{{ID: 1}, {ID: 2}, {ID: 3}}
+	selected := FilterEventsByID(events, map[int]struct{}{2: {}, 3: {}})
+	if len(selected) != 2 || selected[0].ID != 2 || selected[1].ID != 3 {
+		t.Fatalf("%+v", selected)
+	}
+	if all := FilterEventsByID(events, nil); len(all) != len(events) {
+		t.Fatalf("empty filter returned %d events", len(all))
+	}
+}

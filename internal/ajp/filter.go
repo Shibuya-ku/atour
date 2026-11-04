@@ -38,6 +38,20 @@ func FilterChinaEvents(events []EventSummary) []EventSummary {
 	return out
 }
 
+// FilterEventsByID keeps every event when ids is empty, otherwise only selected IDs.
+func FilterEventsByID(events []EventSummary, ids map[int]struct{}) []EventSummary {
+	if len(ids) == 0 {
+		return events
+	}
+	out := make([]EventSummary, 0, len(events))
+	for _, e := range events {
+		if _, ok := ids[e.ID]; ok {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
 func DedupeEventsByID(events []EventSummary) []EventSummary {
 	seen := map[int]int{}
 	out := make([]EventSummary, 0, len(events))

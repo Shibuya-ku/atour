@@ -1,4 +1,4 @@
-﻿package ajp
+package ajp
 
 import (
 	"context"
@@ -9,6 +9,11 @@ import (
 )
 
 func Run(ctx context.Context, c *Client, calendarPath string) ([]EventResult, error) {
+	return RunSelected(ctx, c, calendarPath, nil)
+}
+
+// RunSelected crawls the selected event IDs. An empty set crawls every China event.
+func RunSelected(ctx context.Context, c *Client, calendarPath string, eventIDs map[int]struct{}) ([]EventResult, error) {
 	body, code, err := c.GetBytes(ctx, calendarPath)
 	if err != nil {
 		return nil, err
@@ -20,7 +25,7 @@ func Run(ctx context.Context, c *Client, calendarPath string) ([]EventResult, er
 	if err != nil {
 		return nil, err
 	}
-	events = DedupeEventsByID(FilterChinaEvents(events))
+	events = FilterEventsByID(DedupeEventsByID(FilterChinaEvents(events)), eventIDs)
 	results := make([]EventResult, 0, len(events))
 	for ei, ev := range events {
 		log.Printf("event %d/%d id=%d %s", ei+1, len(events), ev.ID, ev.Title)
@@ -49,10 +54,15 @@ func Run(ctx context.Context, c *Client, calendarPath string) ([]EventResult, er
 
 // RunMany 依次爬取多个日历，按 event_id 合并（后者覆盖同 ID）。
 func RunMany(ctx context.Context, c *Client, calendarPaths []string) ([]EventResult, error) {
+	return RunManySelected(ctx, c, calendarPaths, nil)
+}
+
+// RunManySelected crawls selected event IDs from multiple calendars and merges by event_id.
+func RunManySelected(ctx context.Context, c *Client, calendarPaths []string, eventIDs map[int]struct{}) ([]EventResult, error) {
 	var all []EventResult
 	for _, path := range calendarPaths {
 		log.Printf("calendar %s", path)
-		part, err := Run(ctx, c, path)
+		part, err := RunSelected(ctx, c, path, eventIDs)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", path, err)
 		}
